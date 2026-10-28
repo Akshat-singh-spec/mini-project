@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-canvas text-ink font-body antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display text-bridge-900;
+  }
+
+  :focus-visible {
+    outline: 2px solid theme("colors.harvest.400");
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded font-body font-medium
+      px-5 py-2.5 transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply btn bg-bridge-500 text-white hover:bg-bridge-600;
+  }
+
+  .btn-secondary {
+    @apply btn bg-transparent text-bridge-700 border border-bridge-300 hover:bg-bridge-50;
+  }
+
+  .btn-accent {
+    @apply btn bg-harvest-400 text-bridge-900 hover:bg-harvest-500;
+  }
+
+  .input-field {
+    @apply w-full rounded border border-bridge-200 bg-white px-3.5 py-2.5 text-ink
+      placeholder:text-bridge-400/70 focus:border-bridge-500 focus:outline-none
+      focus:ring-2 focus:ring-bridge-100;
+  }
+
+  .field-label {
+    @apply block text-sm font-medium text-bridge-800 mb-1.5;
+  }
+
+  .field-error {
+    @apply text-sm text-clay mt-1;
+  }
+
+  .card {
+    @apply bg-white border border-bridge-100 rounded-lg;
+  }
+}

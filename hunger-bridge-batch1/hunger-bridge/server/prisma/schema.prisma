@@ -1,0 +1,231 @@
+// Hunger Bridge — Prisma schema
+// Run `npm run prisma:generate` and `npm run prisma:migrate` inside /server
+// after configuring DATABASE_URL in your .env file.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  DONOR
+  NGO
+  ADMIN
+}
+
+enum DonorType {
+  RESTAURANT
+  HOTEL
+  CATERER
+  EVENT_ORGANIZER
+  INDIVIDUAL
+  OTHER
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum FoodCategory {
+  VEG
+  NON_VEG
+  VEGAN
+  MIXED
+}
+
+enum FoodType {
+  COOKED_MEAL
+  RAW_INGREDIENTS
+  PACKAGED_FOOD
+  BAKERY
+  FRUITS_VEGETABLES
+  DAIRY
+  BEVERAGES
+  OTHER
+}
+
+enum QuantityUnit {
+  KG
+  LITERS
+  PLATES
+  PACKETS
+  PIECES
+}
+
+enum DonationStatus {
+  AVAILABLE
+  REQUESTED
+  ACCEPTED
+  COLLECTED
+  DISTRIBUTED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum RequestStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  CANCELLED
+}
+
+enum NotificationType {
+  DONATION_REQUESTED
+  REQUEST_ACCEPTED
+  REQUEST_REJECTED
+  DONATION_CANCELLED
+  DONATION_COLLECTED
+  DONATION_DISTRIBUTED
+  DONATION_COMPLETED
+  NGO_APPROVED
+  NGO_REJECTED
+  GENERAL
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  password     String
+  phone        String?
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  donorProfile DonorProfile?
+  ngoProfile   NgoProfile?
+
+  donations         Donation[]        @relation("DonorDonations")
+  donationRequests  DonationRequest[] @relation("NgoRequests")
+  notifications     Notification[]
+  statusChanges     DonationStatusHistory[] @relation("StatusChangedBy")
+
+  @@map("users")
+}
+
+model DonorProfile {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @unique
+  organizationName String
+  donorType        DonorType
+  address          String
+  city             String
+  state            String
+  pincode          String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([city])
+  @@map("donor_profiles")
+}
+
+model NgoProfile {
+  id                   Int                @id @default(autoincrement())
+  userId               Int                @unique
+  organizationName     String
+  registrationNumber   String             @unique
+  address              String
+  city                 String
+  state                String
+  pincode              String
+  verificationStatus   VerificationStatus @default(PENDING)
+  verificationNote     String?            @db.Text
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([city])
+  @@index([verificationStatus])
+  @@map("ngo_profiles")
+}
+
+model Donation {
+  id             Int            @id @default(autoincrement())
+  donorId        Int
+  title          String
+  description    String         @db.Text
+  foodCategory   FoodCategory
+  foodType       FoodType
+  quantity       Float
+  quantityUnit   QuantityUnit
+  servesApprox   Int?
+  preparedAt     DateTime?
+  expiresAt      DateTime
+  pickupAddress  String
+  city           String
+  state          String
+  pincode        String
+  imageUrl       String?
+  status         DonationStatus @default(AVAILABLE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  donor    User                    @relation("DonorDonations", fields: [donorId], references: [id], onDelete: Cascade)
+  requests DonationRequest[]
+  history  DonationStatusHistory[]
+
+  @@index([city])
+  @@index([status])
+  @@index([foodCategory])
+  @@index([foodType])
+  @@map("donations")
+}
+
+model DonationRequest {
+  id         Int           @id @default(autoincrement())
+  donationId Int
+  ngoId      Int
+  message    String?       @db.Text
+  status     RequestStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  donation Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  ngo      User     @relation("NgoRequests", fields: [ngoId], references: [id], onDelete: Cascade)
+
+  @@unique([donationId, ngoId])
+  @@index([status])
+  @@map("donation_requests")
+}
+
+model Notification {
+  id                Int              @id @default(autoincrement())
+  userId            Int
+  type              NotificationType
+  title             String
+  message           String           @db.Text
+  isRead            Boolean          @default(false)
+  relatedDonationId Int?
+  relatedRequestId  Int?
+  createdAt         DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model DonationStatusHistory {
+  id             Int            @id @default(autoincrement())
+  donationId     Int
+  status         DonationStatus
+  changedByUserId Int
+  note           String?        @db.Text
+  createdAt      DateTime       @default(now())
+
+  donation    Donation @relation(fields: [donationId], references: [id], onDelete: Cascade)
+  changedBy   User     @relation("StatusChangedBy", fields: [changedByUserId], references: [id])
+
+  @@map("donation_status_history")
+}
